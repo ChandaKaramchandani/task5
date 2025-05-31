@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chanda's Weather App</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: linear-gradient(-45deg, #00c6ff, #0072ff, #00c6ff, #0050ff);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: #fff;
+      padding: 20px;
+    }
+
+    @keyframes gradientBG {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+    }
+
+    #clock {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 12px 15px;
+      font-size: 1rem;
+      border-radius: 25px;
+      border: none;
+      outline: none;
+      width: 250px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: box-shadow 0.3s ease;
+      margin-right: 10px;
+    }
+
+    input[type="text"]:focus {
+      box-shadow: 0 0 15px rgba(255,255,255,0.7);
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 1rem;
+      border-radius: 25px;
+      border: none;
+      background-color: #0046c3;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0,70,195,0.4);
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #0033a0;
+      transform: scale(1.05);
+    }
+
+    #result {
+      margin-top: 40px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 25px 35px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      max-width: 350px;
+      text-align: center;
+      font-size: 1.2rem;
+      line-height: 1.5;
+      user-select: none;
+    }
+
+    #weather-icon {
+      width: 80px;
+      height: 80px;
+      margin: 15px auto;
+      filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3));
+    }
+
+    .error {
+      color: #ffdddd;
+      background: rgba(255, 0, 0, 0.2);
+      padding: 15px;
+      border-radius: 15px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 500px) {
+      input[type="text"] {
+        width: 80%;
+        margin-bottom: 15px;
+      }
+      button {
+        width: 80%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🌤️  Weather App</h1>
+  <div id="clock">⏰ Loading time...</div>
+
+  <div>
+    <input type="text" id="city" placeholder="Enter city name..." />
+    <button onclick="getWeather()">Get Weather</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    const apiKey = '5f150e5568835e12d80739766d667a8d';
+
+    // Show live clock
+    function updateClock() {
+      const now = new Date();
+      const timeString = now.toLocaleString();
+      document.getElementById('clock').innerText = `⏰ ${timeString}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    async function getWeather() {
+      const city = document.getElementById('city').value.trim();
+      const resultDiv = document.getElementById('result');
+
+      if (!city) {
+        alert('Please enter a city name');
+        return;
+      }
+
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            resultDiv.innerHTML = '<div class="error"><strong>Invalid API key.</strong> Please check your API key.</div>';
+          } else if (response.status === 404) {
+            resultDiv.innerHTML = '<div class="error"><strong>City not found.</strong> Please check the city name.</div>';
+          } else {
+            resultDiv.innerHTML = `<div class="error"><strong>Error:</strong> ${response.statusText}</div>`;
+          }
+          return;
+        }
+
+        const data = await response.json();
+        const iconUrl = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+
+        // Emoji based on temperature
+        const temp = data.main.temp;
+        let emoji = '🌡️';
+        if (temp < 10) emoji = '❄️';
+        else if (temp > 30) emoji = '🔥';
+        else emoji = '🌤️';
+
+        // Set dynamic background image from Unsplash
+        document.body.style.backgroundImage = `url('https://source.unsplash.com/1600x900/?weather,${city}')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.animation = 'none'; // disable gradient if image loaded
+
+        resultDiv.innerHTML = `
+          <h2>${emoji} Weather in ${data.name}, ${data.sys.country}</h2>
+          <img id="weather-icon" src="${iconUrl}" alt="${data.weather[0].description}" />
+          <p><strong>Temperature:</strong> ${temp} °C</p>
+          <p><strong>Condition:</strong> ${data.weather[0].description}</p>
+          <p><strong>Humidity:</strong> ${data.main.humidity}%</p>
+          <p><strong>Wind Speed:</strong> ${data.wind.speed} m/s</p>
+          <p><em>Last updated: ${new Date().toLocaleTimeString()}</em></p>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = '<div class="error"><strong>Failed to fetch weather data.</strong> Please try again later.</div>';
+      }
+    }
+  </script>
+</body>
+</html>
